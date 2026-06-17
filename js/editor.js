@@ -31,16 +31,75 @@ const colorPicker = document.getElementById('colorPicker');
 const brushSize = document.getElementById('brushSize');
 const toolPencil = document.getElementById('toolPencil');
 const toolEraser = document.getElementById('toolEraser');
+const toolFill = document.getElementById('toolFill');
 
 function setTool(name) {
   tool = name;
   toolPencil.classList.toggle('active', name === 'pencil');
   toolEraser.classList.toggle('active', name === 'eraser');
+  toolFill.classList.toggle('active', name === 'fill');
 }
 
 toolPencil.addEventListener('click', () => setTool('pencil'));
 toolEraser.addEventListener('click', () => setTool('eraser'));
+toolFill.addEventListener('click', () => setTool('fill'));
 document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+
+function hexToRgba(hex) {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+    255
+  ];
+}
+
+function colorsMatch(a, b, tolerance) {
+  return Math.abs(a[0] - b[0]) <= tolerance &&
+    Math.abs(a[1] - b[1]) <= tolerance &&
+    Math.abs(a[2] - b[2]) <= tolerance &&
+    Math.abs(a[3] - b[3]) <= tolerance;
+}
+
+function floodFill(startX, startY, fillColor) {
+  const width = canvas.width;
+  const height = canvas.height;
+  startX = Math.floor(startX);
+  startY = Math.floor(startY);
+  if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
+
+  const imgData = ctx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+
+  const startIdx = (startY * width + startX) * 4;
+  const startColor = [data[startIdx], data[startIdx + 1], data[startIdx + 2], data[startIdx + 3]];
+  if (colorsMatch(startColor, fillColor, 0)) return;
+
+  const tolerance = 32;
+  const visited = new Uint8Array(width * height);
+  const stack = [[startX, startY]];
+
+  while (stack.length) {
+    const [x, y] = stack.pop();
+    if (x < 0 || x >= width || y < 0 || y >= height) continue;
+    const pixelIdx = y * width + x;
+    if (visited[pixelIdx]) continue;
+
+    const dataIdx = pixelIdx * 4;
+    const current = [data[dataIdx], data[dataIdx + 1], data[dataIdx + 2], data[dataIdx + 3]];
+    if (!colorsMatch(current, startColor, tolerance)) continue;
+
+    visited[pixelIdx] = 1;
+    data[dataIdx] = fillColor[0];
+    data[dataIdx + 1] = fillColor[1];
+    data[dataIdx + 2] = fillColor[2];
+    data[dataIdx + 3] = fillColor[3];
+
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+}
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -53,8 +112,13 @@ function getPos(e) {
 }
 
 function startDraw(e) {
-  drawing = true;
   const pos = getPos(e);
+  if (tool === 'fill') {
+    floodFill(pos.x, pos.y, hexToRgba(colorPicker.value));
+    e.preventDefault();
+    return;
+  }
+  drawing = true;
   lastX = pos.x;
   lastY = pos.y;
   e.preventDefault();
