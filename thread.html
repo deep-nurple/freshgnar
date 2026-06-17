@@ -22,6 +22,12 @@
   <a href="index.html" class="back-link">&larr; Back to board</a>
 </main>
 
+<div id="lightbox" class="lightbox" hidden>
+  <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Close">&times;</button>
+  <img id="lightboxImg" class="lightbox-img" alt="Expanded panel">
+  <button id="lightboxDownload" class="btn-primary lightbox-download" type="button">Download</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/thread.js"></script>

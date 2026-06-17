@@ -7,6 +7,50 @@ if (!threadId) {
 
 document.getElementById('addPanelLink').href = `draw.html?thread_id=${threadId}`;
 
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxClose = document.getElementById('lightboxClose');
+const lightboxDownload = document.getElementById('lightboxDownload');
+let currentLightboxUrl = null;
+
+function openLightbox(imageUrl, panelNumber) {
+  currentLightboxUrl = imageUrl;
+  lightboxImg.src = imageUrl;
+  lightboxImg.alt = `Panel ${panelNumber}`;
+  lightbox.hidden = false;
+}
+
+function closeLightbox() {
+  lightbox.hidden = true;
+  lightboxImg.src = '';
+  currentLightboxUrl = null;
+}
+
+async function downloadCurrentImage() {
+  if (!currentLightboxUrl) return;
+  try {
+    const response = await fetch(currentLightboxUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `panel-${Date.now()}.png`;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    window.open(currentLightboxUrl, '_blank');
+  }
+}
+
+lightboxClose.addEventListener('click', closeLightbox);
+lightboxDownload.addEventListener('click', downloadCurrentImage);
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+});
+
 async function loadThread() {
   const stripEl = document.getElementById('panelStrip');
   const titleEl = document.getElementById('threadTitle');
@@ -56,6 +100,7 @@ async function loadThread() {
 
     frame.appendChild(img);
     frame.appendChild(num);
+    frame.addEventListener('click', () => openLightbox(panel.image_url, index + 1));
     stripEl.appendChild(frame);
   });
 }

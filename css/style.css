@@ -166,6 +166,7 @@ body {
   border: 1px solid var(--border);
   overflow: hidden;
   aspect-ratio: 4 / 3;
+  cursor: pointer;
 }
 
 .panel-frame img {
@@ -193,6 +194,43 @@ body {
   color: var(--text);
   text-decoration: none;
   font-weight: 600;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 78vh;
+  object-fit: contain;
+  border: 3px solid var(--border);
+  background: var(--panel-white);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .editor-layout {
