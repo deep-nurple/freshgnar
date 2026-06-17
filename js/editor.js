@@ -29,9 +29,40 @@ let lastY = 0;
 
 const colorPicker = document.getElementById('colorPicker');
 const brushSize = document.getElementById('brushSize');
+const brushShape = document.getElementById('brushShape');
 const toolPencil = document.getElementById('toolPencil');
 const toolEraser = document.getElementById('toolEraser');
 const toolFill = document.getElementById('toolFill');
+const undoBtn = document.getElementById('undoBtn');
+
+const UNDO_LIMIT = 7;
+const undoStack = [];
+
+function updateUndoBtn() {
+  undoBtn.disabled = undoStack.length === 0;
+}
+
+function saveUndoState() {
+  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  if (undoStack.length > UNDO_LIMIT) {
+    undoStack.shift();
+  }
+  updateUndoBtn();
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  ctx.putImageData(undoStack.pop(), 0, 0);
+  updateUndoBtn();
+}
+
+undoBtn.addEventListener('click', undo);
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undo();
+  }
+});
 
 function setTool(name) {
   tool = name;
@@ -43,7 +74,10 @@ function setTool(name) {
 toolPencil.addEventListener('click', () => setTool('pencil'));
 toolEraser.addEventListener('click', () => setTool('eraser'));
 toolFill.addEventListener('click', () => setTool('fill'));
-document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+document.getElementById('clearBtn').addEventListener('click', () => {
+  saveUndoState();
+  clearCanvas();
+});
 
 function hexToRgba(hex) {
   return [
@@ -111,16 +145,60 @@ function getPos(e) {
   };
 }
 
+function sprayAt(x, y, size, color) {
+  const radius = size / 2 + 4;
+  const density = Math.max(4, Math.floor(size * 1.5));
+  ctx.fillStyle = color;
+  for (let i = 0; i < density; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * radius;
+    ctx.fillRect(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 1, 1);
+  }
+}
+
+function stampAt(x, y) {
+  const size = parseFloat(brushSize.value);
+  const color = tool === 'eraser' ? '#ffffff' : colorPicker.value;
+
+  if (brushShape.value === 'spray') {
+    sprayAt(x, y, size, color);
+    return;
+  }
+
+  ctx.fillStyle = color;
+  if (brushShape.value === 'square') {
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  } else {
+    ctx.beginPath();
+    ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function stampLine(x0, y0, x1, y1) {
+  const size = parseFloat(brushSize.value);
+  const dist = Math.hypot(x1 - x0, y1 - y0);
+  const step = Math.max(1, size / 4);
+  const steps = Math.max(1, Math.ceil(dist / step));
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    stampAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+  }
+}
+
 function startDraw(e) {
   const pos = getPos(e);
   if (tool === 'fill') {
+    saveUndoState();
     floodFill(pos.x, pos.y, hexToRgba(colorPicker.value));
     e.preventDefault();
     return;
   }
+  saveUndoState();
   drawing = true;
   lastX = pos.x;
   lastY = pos.y;
+  stampAt(pos.x, pos.y);
   e.preventDefault();
 }
 
@@ -131,14 +209,7 @@ function stopDraw() {
 function draw(e) {
   if (!drawing) return;
   const pos = getPos(e);
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.lineWidth = brushSize.value;
-  ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : colorPicker.value;
-  ctx.beginPath();
-  ctx.moveTo(lastX, lastY);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
+  stampLine(lastX, lastY, pos.x, pos.y);
   lastX = pos.x;
   lastY = pos.y;
   e.preventDefault();
