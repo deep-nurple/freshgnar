@@ -1,16 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hello world</title>
-  <link rel="stylesheet" href="styles/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawboard</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<header class="site-header">
+  <a href="index.html" class="logo">Gnarboard</a>
+  <a href="draw.html?new=true" class="btn-primary">Start New Thread</a>
+</header>
 
-  <main>
-    <img src="images/squatchy.png" style="width: 900px;"/>
-  </main>
+<main class="board-page">
+  <p class="tagline">A collaborative drawing imageboard. Pick a thread and add the next panel, or start your own comic.</p>
+  <div id="threadList" class="thread-list"></div>
+</main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/board.js"></script>
 </body>
 </html>

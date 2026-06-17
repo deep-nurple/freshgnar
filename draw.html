@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawboard - Draw Panel</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a href="index.html" class="logo">Drawboard</a>
+</header>
+
+<main class="editor-page">
+  <h1 id="editor-title">Draw a panel</h1>
+
+  <div class="editor-layout">
+    <div class="prev-panel" id="prevPanelWrap" hidden>
+      <p class="prev-label">Previous panel</p>
+      <img id="prevPanelImg" alt="Previous panel">
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="paintCanvas" width="640" height="480"></canvas>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button id="toolPencil" class="tool-btn active" type="button">Pencil</button>
+    <button id="toolEraser" class="tool-btn" type="button">Eraser</button>
+    <label class="tool-label">Color
+      <input type="color" id="colorPicker" value="#000000">
+    </label>
+    <label class="tool-label">Size
+      <input type="range" id="brushSize" min="1" max="40" value="4">
+    </label>
+    <button id="clearBtn" class="tool-btn" type="button">Clear</button>
+  </div>
+
+  <div class="actions">
+    <a href="index.html" id="cancelLink" class="btn-secondary">Cancel</a>
+    <button id="saveBtn" class="btn-primary" type="button">Save &amp; Post</button>
+  </div>
+  <p id="statusMsg" class="status-msg"></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/editor.js"></script>
+</body>
+</html>

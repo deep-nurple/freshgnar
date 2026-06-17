@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawboard - Thread</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a href="index.html" class="logo">Drawboard</a>
+</header>
+
+<main class="thread-page">
+  <div class="thread-page-head">
+    <h1 id="threadTitle">Loading thread...</h1>
+    <a id="addPanelLink" href="#" class="btn-primary">+ Add Panel</a>
+  </div>
+
+  <div id="panelStrip" class="panel-strip"></div>
+
+  <a href="index.html" class="back-link">&larr; Back to board</a>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/thread.js"></script>
+</body>
+</html>
