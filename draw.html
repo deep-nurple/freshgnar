@@ -29,6 +29,7 @@
     <button id="toolPencil" class="tool-btn active" type="button">Pencil</button>
     <button id="toolEraser" class="tool-btn" type="button">Eraser</button>
     <button id="toolFill" class="tool-btn" type="button">Fill</button>
+    <button id="toolLetter" class="tool-btn" type="button">Letter Stamp</button>
     <label class="tool-label">Color
       <input type="color" id="colorPicker" value="#000000">
     </label>
@@ -46,6 +47,9 @@
     </label>
     <label class="tool-label">Opacity
       <input type="range" id="opacitySlider" min="1" max="100" value="100">
+    </label>
+    <label class="tool-label">Letter
+      <input type="text" id="letterInput" value="A" maxlength="1" size="2">
     </label>
     <button id="undoBtn" class="tool-btn" type="button" disabled>Undo</button>
     <button id="clearBtn" class="tool-btn" type="button">Clear</button>

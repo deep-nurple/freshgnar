@@ -34,6 +34,8 @@ const opacitySlider = document.getElementById('opacitySlider');
 const toolPencil = document.getElementById('toolPencil');
 const toolEraser = document.getElementById('toolEraser');
 const toolFill = document.getElementById('toolFill');
+const toolLetter = document.getElementById('toolLetter');
+const letterInput = document.getElementById('letterInput');
 const undoBtn = document.getElementById('undoBtn');
 
 const UNDO_LIMIT = 7;
@@ -70,13 +72,15 @@ function setTool(name) {
   toolPencil.classList.toggle('active', name === 'pencil');
   toolEraser.classList.toggle('active', name === 'eraser');
   toolFill.classList.toggle('active', name === 'fill');
+  toolLetter.classList.toggle('active', name === 'letter');
 }
 
 toolPencil.addEventListener('click', () => setTool('pencil'));
 toolEraser.addEventListener('click', () => setTool('eraser'));
 toolFill.addEventListener('click', () => setTool('fill'));
+toolLetter.addEventListener('click', () => setTool('letter'));
 brushShape.addEventListener('change', () => {
-  if (tool === 'fill') setTool('pencil');
+  if (tool === 'fill' || tool === 'letter') setTool('pencil');
 });
 document.getElementById('clearBtn').addEventListener('click', () => {
   saveUndoState();
@@ -243,11 +247,30 @@ function compositeStroke() {
   ctx.restore();
 }
 
+function stampLetter(x, y) {
+  const letter = letterInput.value || 'A';
+  const fontSize = Math.max(12, parseFloat(brushSize.value) * 4);
+  ctx.save();
+  ctx.globalAlpha = getOpacity();
+  ctx.fillStyle = colorPicker.value;
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(letter, x, y);
+  ctx.restore();
+}
+
 function startDraw(e) {
   const pos = getPos(e);
   if (tool === 'fill') {
     saveUndoState();
     floodFill(pos.x, pos.y, hexToRgba(colorPicker.value));
+    e.preventDefault();
+    return;
+  }
+  if (tool === 'letter') {
+    saveUndoState();
+    stampLetter(pos.x, pos.y);
     e.preventDefault();
     return;
   }
