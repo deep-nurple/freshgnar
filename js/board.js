@@ -49,10 +49,55 @@ async function loadThreads() {
       <span class="thread-date">${new Date(thread.created_at).toLocaleString()}</span>
     `;
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'thread-delete-btn delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteThread(thread.id);
+    });
+
     card.appendChild(thumb);
     card.appendChild(meta);
+    card.appendChild(deleteBtn);
     threadList.appendChild(card);
   }
+}
+
+async function deleteThread(threadId) {
+  if (!window.confirm('Delete this entire thread and all its panels? This cannot be undone.')) return;
+
+  const { data: drawings, error: fetchError } = await sb
+    .from('drawings')
+    .select('image_url')
+    .eq('thread_id', threadId);
+
+  if (fetchError) {
+    window.alert('Could not load this thread\'s panels: ' + fetchError.message);
+    return;
+  }
+
+  const paths = (drawings || []).map((d) => storagePathFromUrl(d.image_url)).filter(Boolean);
+  if (paths.length > 0) {
+    const { error: removeError } = await sb.storage.from('drawings').remove(paths);
+    if (removeError) console.error('Could not remove some drawing files:', removeError);
+  }
+
+  const { error: drawingsError } = await sb.from('drawings').delete().eq('thread_id', threadId);
+  if (drawingsError) {
+    window.alert('Could not delete this thread\'s panels: ' + drawingsError.message);
+    return;
+  }
+
+  const { error: threadError } = await sb.from('threads').delete().eq('id', threadId);
+  if (threadError) {
+    window.alert('Could not delete thread: ' + threadError.message);
+    return;
+  }
+
+  loadThreads();
 }
 
 loadThreads();

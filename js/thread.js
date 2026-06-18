@@ -98,11 +98,39 @@ async function loadThread() {
     img.src = panel.image_url;
     img.alt = `Panel ${index + 1}`;
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'panel-delete-btn delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteDrawing(panel.id, panel.image_url);
+    });
+
     frame.appendChild(img);
     frame.appendChild(num);
+    frame.appendChild(deleteBtn);
     frame.addEventListener('click', () => openLightbox(panel.image_url, index + 1));
     stripEl.appendChild(frame);
   });
+}
+
+async function deleteDrawing(drawingId, imageUrl) {
+  if (!window.confirm('Delete this panel? This cannot be undone.')) return;
+
+  const path = storagePathFromUrl(imageUrl);
+  if (path) {
+    const { error: removeError } = await sb.storage.from('drawings').remove([path]);
+    if (removeError) console.error('Could not remove drawing file:', removeError);
+  }
+
+  const { error } = await sb.from('drawings').delete().eq('id', drawingId);
+  if (error) {
+    window.alert('Could not delete panel: ' + error.message);
+    return;
+  }
+
+  loadThread();
 }
 
 loadThread();

@@ -30,3 +30,18 @@ create policy "Public can read drawing files"
 create policy "Public can upload drawing files"
   on storage.objects for insert
   with check (bucket_id = 'drawings');
+
+-- Delete: there's no real user/admin auth, so this is gated only by a
+-- client-side password prompt in js/adminAuth.js, not by the database.
+-- Anyone calling the API directly with the anon key can delete too.
+create policy "Public can delete threads"
+  on public.threads for delete
+  using (true);
+
+create policy "Public can delete drawings"
+  on public.drawings for delete
+  using (true);
+
+create policy "Public can delete drawing files"
+  on storage.objects for delete
+  using (bucket_id = 'drawings');

@@ -30,6 +30,7 @@ let lastY = 0;
 const colorPicker = document.getElementById('colorPicker');
 const brushSize = document.getElementById('brushSize');
 const brushShape = document.getElementById('brushShape');
+const opacitySlider = document.getElementById('opacitySlider');
 const toolPencil = document.getElementById('toolPencil');
 const toolEraser = document.getElementById('toolEraser');
 const toolFill = document.getElementById('toolFill');
@@ -74,6 +75,9 @@ function setTool(name) {
 toolPencil.addEventListener('click', () => setTool('pencil'));
 toolEraser.addEventListener('click', () => setTool('eraser'));
 toolFill.addEventListener('click', () => setTool('fill'));
+brushShape.addEventListener('change', () => {
+  if (tool === 'fill') setTool('pencil');
+});
 document.getElementById('clearBtn').addEventListener('click', () => {
   saveUndoState();
   clearCanvas();
@@ -86,6 +90,15 @@ function hexToRgba(hex) {
     parseInt(hex.slice(5, 7), 16),
     255
   ];
+}
+
+function hexToRgbaString(hex, alpha) {
+  const [r, g, b] = hexToRgba(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getOpacity() {
+  return parseFloat(opacitySlider.value) / 100;
 }
 
 function colorsMatch(a, b, tolerance) {
@@ -109,6 +122,7 @@ function floodFill(startX, startY, fillColor) {
   const startColor = [data[startIdx], data[startIdx + 1], data[startIdx + 2], data[startIdx + 3]];
   if (colorsMatch(startColor, fillColor, 0)) return;
 
+  const opacity = getOpacity();
   const tolerance = 32;
   const visited = new Uint8Array(width * height);
   const stack = [[startX, startY]];
@@ -124,10 +138,10 @@ function floodFill(startX, startY, fillColor) {
     if (!colorsMatch(current, startColor, tolerance)) continue;
 
     visited[pixelIdx] = 1;
-    data[dataIdx] = fillColor[0];
-    data[dataIdx + 1] = fillColor[1];
-    data[dataIdx + 2] = fillColor[2];
-    data[dataIdx + 3] = fillColor[3];
+    data[dataIdx] = current[0] * (1 - opacity) + fillColor[0] * opacity;
+    data[dataIdx + 1] = current[1] * (1 - opacity) + fillColor[1] * opacity;
+    data[dataIdx + 2] = current[2] * (1 - opacity) + fillColor[2] * opacity;
+    data[dataIdx + 3] = current[3] * (1 - opacity) + fillColor[3] * opacity;
 
     stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
   }
@@ -145,45 +159,88 @@ function getPos(e) {
   };
 }
 
-function sprayAt(x, y, size, color) {
+const strokeCanvas = document.createElement('canvas');
+strokeCanvas.width = canvas.width;
+strokeCanvas.height = canvas.height;
+const strokeCtx = strokeCanvas.getContext('2d');
+let strokeBase = null;
+
+function sprayAt(targetCtx, x, y, size, color) {
   const radius = size / 2 + 4;
   const density = Math.max(4, Math.floor(size * 1.5));
-  ctx.fillStyle = color;
+  targetCtx.fillStyle = color;
   for (let i = 0; i < density; i++) {
     const angle = Math.random() * Math.PI * 2;
     const r = Math.random() * radius;
-    ctx.fillRect(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 1, 1);
+    targetCtx.fillRect(x + Math.cos(angle) * r, y + Math.sin(angle) * r, 1, 1);
   }
 }
 
-function stampAt(x, y) {
+function softAt(targetCtx, x, y, size, color) {
+  const radius = size / 2;
+  const gradient = targetCtx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, hexToRgbaString(color, 1));
+  gradient.addColorStop(1, hexToRgbaString(color, 0));
+  targetCtx.fillStyle = gradient;
+  targetCtx.beginPath();
+  targetCtx.arc(x, y, radius, 0, Math.PI * 2);
+  targetCtx.fill();
+}
+
+function calligraphyAt(targetCtx, x, y, size, color) {
+  const w = size;
+  const h = Math.max(1, size / 3);
+  targetCtx.fillStyle = color;
+  targetCtx.save();
+  targetCtx.translate(x, y);
+  targetCtx.rotate(-Math.PI / 4);
+  targetCtx.fillRect(-w / 2, -h / 2, w, h);
+  targetCtx.restore();
+}
+
+function stampAt(targetCtx, x, y) {
   const size = parseFloat(brushSize.value);
   const color = tool === 'eraser' ? '#ffffff' : colorPicker.value;
 
-  if (brushShape.value === 'spray') {
-    sprayAt(x, y, size, color);
-    return;
-  }
-
-  ctx.fillStyle = color;
-  if (brushShape.value === 'square') {
-    ctx.fillRect(x - size / 2, y - size / 2, size, size);
-  } else {
-    ctx.beginPath();
-    ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-    ctx.fill();
+  switch (brushShape.value) {
+    case 'spray':
+      sprayAt(targetCtx, x, y, size, color);
+      break;
+    case 'square':
+      targetCtx.fillStyle = color;
+      targetCtx.fillRect(x - size / 2, y - size / 2, size, size);
+      break;
+    case 'soft':
+      softAt(targetCtx, x, y, size, color);
+      break;
+    case 'calligraphy':
+      calligraphyAt(targetCtx, x, y, size, color);
+      break;
+    default:
+      targetCtx.fillStyle = color;
+      targetCtx.beginPath();
+      targetCtx.arc(x, y, size / 2, 0, Math.PI * 2);
+      targetCtx.fill();
   }
 }
 
-function stampLine(x0, y0, x1, y1) {
+function stampLine(targetCtx, x0, y0, x1, y1) {
   const size = parseFloat(brushSize.value);
   const dist = Math.hypot(x1 - x0, y1 - y0);
-  const step = Math.max(1, size / 4);
+  const step = Math.max(1, size / 12);
   const steps = Math.max(1, Math.ceil(dist / step));
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
-    stampAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
+    stampAt(targetCtx, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
   }
+}
+
+function compositeStroke() {
+  ctx.putImageData(strokeBase, 0, 0);
+  ctx.save();
+  ctx.globalAlpha = getOpacity();
+  ctx.drawImage(strokeCanvas, 0, 0);
+  ctx.restore();
 }
 
 function startDraw(e) {
@@ -198,7 +255,12 @@ function startDraw(e) {
   drawing = true;
   lastX = pos.x;
   lastY = pos.y;
-  stampAt(pos.x, pos.y);
+
+  strokeBase = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  strokeCtx.clearRect(0, 0, strokeCanvas.width, strokeCanvas.height);
+  stampAt(strokeCtx, pos.x, pos.y);
+  compositeStroke();
+
   e.preventDefault();
 }
 
@@ -209,7 +271,8 @@ function stopDraw() {
 function draw(e) {
   if (!drawing) return;
   const pos = getPos(e);
-  stampLine(lastX, lastY, pos.x, pos.y);
+  stampLine(strokeCtx, lastX, lastY, pos.x, pos.y);
+  compositeStroke();
   lastX = pos.x;
   lastY = pos.y;
   e.preventDefault();
